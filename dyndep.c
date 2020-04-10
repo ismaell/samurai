@@ -300,8 +300,6 @@ dyndepload(struct dyndep *d, bool prune)
 		/* only update the node if it was previously added to the build */
 		if (n->gen->flags & FLAG_WORK)
 			buildupdate(n);
-		else
-			buildadd(n);
 		n->gen->flags &= ~FLAG_DYNDEP;
 	}
 
