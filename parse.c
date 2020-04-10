@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "env.h"
+#include "dyndep.h"
 #include "graph.h"
 #include "parse.h"
 #include "scan.h"
@@ -73,7 +74,7 @@ parseedge(struct scanner *s, struct environment *env)
 	struct edge *e;
 	struct evalstring *str, **path;
 	char *name;
-	struct string *val;
+	struct string *val, *dynval;
 	struct node *n;
 	size_t i;
 	int p, indent;
@@ -115,7 +116,7 @@ parseedge(struct scanner *s, struct environment *env)
 		if (p < 0)
 			return false;
 	}
-	e->inorderidx = npaths - e->nout;
+	e->indynidx = e->inorderidx = npaths - e->nout;
 	if (p == 2 && !scanpaths(s))
 		return false;
 	e->nin = npaths - e->nout;
@@ -149,6 +150,10 @@ parseedge(struct scanner *s, struct environment *env)
 			++i;
 		}
 	}
+	e->outdynidx = e->nout;
+
+	dynval = edgevar(e, "dyndep", false);
+
 	e->in = xreallocarray(NULL, e->nin, sizeof(e->in[0]));
 	for (i = 0; i < e->nin; ++i, ++path) {
 		val = enveval(e->env, *path);
@@ -156,8 +161,15 @@ parseedge(struct scanner *s, struct environment *env)
 		n = mknode(val);
 		e->in[i] = n;
 		nodeuse(n, e);
+		if (dynval && strcmp(n->path->s, dynval->s) == 0) {
+			dyndepuse(mkdyndep(n), e);
+			dynval = NULL;
+		}
 	}
 	npaths = 0;
+
+	if (dynval)
+		fatal("dyndep '%s' is not an input", dynval->s);
 
 	val = edgevar(e, "pool", true);
 	if (val)
