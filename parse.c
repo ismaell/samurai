@@ -153,6 +153,8 @@ parseedge(struct scanner *s, struct environment *env)
 	e->outdynidx = e->nout;
 
 	dynval = edgevar(e, "dyndep", false);
+	if (dynval && dynval->n)
+		canonpath(dynval);
 
 	e->in = xreallocarray(NULL, e->nin, sizeof(e->in[0]));
 	for (i = 0; i < e->nin; ++i, ++path) {
@@ -161,14 +163,14 @@ parseedge(struct scanner *s, struct environment *env)
 		n = mknode(val);
 		e->in[i] = n;
 		nodeuse(n, e);
-		if (dynval && strcmp(n->path->s, dynval->s) == 0) {
+		if (dynval && dynval->n && strcmp(n->path->s, dynval->s) == 0) {
 			dyndepuse(mkdyndep(n), e);
 			dynval = NULL;
 		}
 	}
 	npaths = 0;
 
-	if (dynval)
+	if (dynval && dynval->n)
 		fatal("dyndep '%s' is not an input", dynval->s);
 
 	val = edgevar(e, "pool", true);
